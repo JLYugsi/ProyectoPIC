@@ -6,25 +6,78 @@
     <title>Proyecto P1 - Dashboard de Tareas</title>
     <link rel="stylesheet" href="./public/vendor/bootstrap/css/bootstrap.min.css">
 </head>
+
 <body class="pt-5">
-    <header class="text-center">
+
+    <header class="text-center mb-4">
         <h1>Mi Dashboard de Tareas</h1>
+        <button class="btn btn-outline-danger btn-sm" id="logoutBtn">
+            🚪 Cerrar Sesión
+        </button>
     </header>
+
     <main>
         <div class="container" style="max-width: 600px;">
-            
-            <task-list>
-                <task-item checked>Aprender Custom Elements</task-item>
-                <task-item checked>Entender Shadow DOM</task-item>
-                <task-item checked>Implementar ES Modules</task-item>
-                <task-item checked>Usar HTML Templates</task-item>
-                <task-item>Preparar la defensa del proyecto</task-item>
+
+      
+            <!-- AGREGADO: Barra de Progreso -->
+      
+            <div class="progress mb-4" style="height: 25px;">
+                <div id="progress-bar"
+                     class="progress-bar bg-success fw-bold"
+                     style="width: 0%;">0%</div>
+            </div>
+
+   
+            <task-list class="mb-4">
+
+                <task-item task="tarea1">Activar cámara</task-item>
+                <task-item task="tarea2">Mostrar imagen</task-item>
+                <task-item task="tarea3">Cambiar color del fondo</task-item>
+                <task-item task="tarea4">Reproducir sonido</task-item>
+
+                
+ 
+
             </task-list>
+
+
+
+            <video id="video" autoplay style="display:none; width:100%;" 
+                   class="rounded mb-3"></video>
+
+            <img id="imagenDemo" src="https://picsum.photos/300" 
+                 style="display:none; width:100%;" class="rounded mb-3">
 
         </div>
     </main>
 
+
+    <!-- AGREGADO: Inicializar TaskManager -->
+ 
+    <script type="module">
+        import { TaskManager } from "./public/js/TaskItem.js";  //  IMPORTA TaskManager
+        new TaskManager("#progress-bar");                      //  INICIALIZA
+    </script>
+
     <script type="module" src="./public/js/main.js"></script>
     <script src="./public/vendor/bootstrap/js/bootstrap.min.js"></script>
+
+    <script>
+        // Funcionalidad de logout
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+                        localStorage.removeItem('isLoggedIn');
+                        localStorage.removeItem('loginTime');
+                        window.location.href = 'login.html';
+                    }
+                });
+            }
+        });
+    </script>
+
 </body>
 </html>
