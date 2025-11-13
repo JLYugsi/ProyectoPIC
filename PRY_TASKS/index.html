@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Tareas</title>
+    <link rel="stylesheet" href="./public/vendor/bootstrap/css/bootstrap.min.css">
+</head>
+<body class="pt-5">
+    <header class="text-center">
+        <h1>Mi Dashboard de Tareas</h1>
+    </header>
+    <main>
+        <div class="container" style="max-width: 600px;">
+            
+            <task-list>
+                <task-item checked>Aprender Custom Elements</task-item>
+                <task-item checked>Entender Shadow DOM</task-item>
+                <task-item checked>Implementar ES Modules</task-item>
+                <task-item checked>Usar HTML Templates</task-item>
+                <task-item>Preparar la defensa del proyecto</task-item>
+            </task-list>
+
+        </div>
+    </main>
+
+    <script type="module" src="./public/js/main.js"></script>
+    <script src="./public/vendor/bootstrap/js/bootstrap.min.js"></script>
+</body>
+</html>
