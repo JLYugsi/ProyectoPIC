@@ -1,4 +1,4 @@
-// 1. Definimos el <template>
+// 1. Definimos el template
 const template = document.createElement('template');
 template.innerHTML = `
     <style>

@@ -40,7 +40,7 @@ template.innerHTML = `
 `;
 
 export class TaskItem extends HTMLElement {
-    #checkbox; // Referencia interna
+    #checkbox; // Referencia interna.
 
     constructor() {
         super();
@@ -49,18 +49,18 @@ export class TaskItem extends HTMLElement {
 
         this.#checkbox = shadow.querySelector('#checkbox');
 
-        // (C) Verificamos si el elemento ya venía 'checked' desde el HTML
+        // (C) Verificamos si el elemento ya venía 'checked' desde el HTML.
         if (this.hasAttribute('checked')) {
             this.#checkbox.checked = true;
             this._reflectAttribute(true);
         }
 
-        // (D) Listener para el cambio en el checkbox
+        // (D) Listener para el cambio en el checkbox.
         this.#checkbox.addEventListener('change', () => {
             const isChecked = this.#checkbox.checked;
             this._reflectAttribute(isChecked);
 
-            // (E) ¡La interacción! Disparamos un evento que el padre (TaskList) escuchará
+            // (E) ¡La interacción! Disparamos un evento que el padre (TaskList) escuchará.
             this.dispatchEvent(new CustomEvent('task-toggled', {
                 bubbles: true,
                 composed: true,
@@ -69,7 +69,7 @@ export class TaskItem extends HTMLElement {
         });
     }
 
-    // (F) Buena práctica: reflejar el estado en el DOM
+    // (F) Buena práctica: reflejar el estado en el DOM.
     _reflectAttribute(isChecked) {
         if (isChecked) {
             this.setAttribute('checked', '');
@@ -78,7 +78,7 @@ export class TaskItem extends HTMLElement {
         }
     }
 
-    // (G) Propiedad pública para que el padre sepa si está marcado
+    // (G) Propiedad pública para que el padre sepa si está marcado.
     get isChecked() {
         return this.hasAttribute('checked');
     }
