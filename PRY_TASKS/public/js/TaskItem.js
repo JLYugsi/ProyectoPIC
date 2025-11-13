@@ -1,23 +1,29 @@
+/* ==========================================================
+   COMPONENTE <task-item>
+   ========================================================== */
+
 const template = document.createElement('template');
 template.innerHTML = `
     <style>
-        :host { /* :host se refiere al elemento <task-item> */
+        :host {
             display: block;
         }
 
         .task-item {
             display: flex;
-            align-items: center;
+            flex-direction: column;
             padding: 0.8rem;
-            border-bottom: 1px solid #495057;
+            border-bottom: 1px solid #024a91ff;
         }
 
-        .task-item:last-child {
-            border-bottom: none;
+        .row-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         input[type="checkbox"] {
-            margin-right: 1rem;
+            margin-left: 1rem;
             transform: scale(1.3);
         }
 
@@ -27,20 +33,40 @@ template.innerHTML = `
             cursor: pointer;
         }
 
-        :host([checked]) label { /* (A) Estilo si el <task-item> tiene el atributo 'checked' */
+        :host([checked]) label {
             text-decoration: line-through;
-            color: #6c757d;
+            color: #1068b5ff;
         }
+
+        .actions {
+            margin-top: 10px;
+        }
+
+        video, img {
+            width: 100%;
+            margin-top: 12px;
+            border-radius: 10px;
+            display: none;
+        }
+
     </style>
     
     <div class="task-item">
-        <input type="checkbox" id="checkbox">
-        <label for="checkbox"><slot></slot></label>
+        <div class="row-head">
+            <label for="checkbox"><slot></slot></label>
+            <input type="checkbox" id="checkbox">
+        </div>
+
+        <div class="actions"></div>
+
+        <!-- contenedor local multimedia -->
+        <video id="localVideo" autoplay></video>
+        <img id="localImage">
     </div>
 `;
 
 export class TaskItem extends HTMLElement {
-    #checkbox; // Referencia interna.
+    #checkbox;
 
     constructor() {
         super();
@@ -48,38 +74,198 @@ export class TaskItem extends HTMLElement {
         shadow.appendChild(template.content.cloneNode(true));
 
         this.#checkbox = shadow.querySelector('#checkbox');
+        this.actions = shadow.querySelector(".actions");
 
-        // (C) Verificamos si el elemento ya venía 'checked' desde el HTML.
-        if (this.hasAttribute('checked')) {
-            this.#checkbox.checked = true;
-            this._reflectAttribute(true);
+        /* Bandera para validar acción completada */
+        this.actionCompleted = false;
+
+        /* Elementos multimedia locales */
+        this.localVideo = shadow.querySelector("#localVideo");
+        this.localImage = shadow.querySelector("#localImage");
+
+        const taskName = this.getAttribute("task");
+
+        /* BOTONES SEGÚN LA TAREA */
+        if (taskName === "tarea1") {
+            this.actions.innerHTML = `<button class="btn btn-primary btn-sm">Activar cámara</button>`;
+        }
+        if (taskName === "tarea2") {
+            this.actions.innerHTML = `<button class="btn btn-primary btn-sm">Mostrar imagen</button>`;
+        }
+        if (taskName === "tarea3") {
+            this.actions.innerHTML = `<button class="btn btn-primary btn-sm">Cambiar fondo</button>`;
+        }
+        if (taskName === "tarea4") {
+            this.actions.innerHTML = `<button class="btn btn-primary btn-sm">Reproducir sonido</button>`;
         }
 
-        // (D) Listener para el cambio en el checkbox.
+        /* EVENTO DEL BOTÓN */
+        const actionBtn = this.actions.querySelector("button");
+        if (actionBtn) {
+            actionBtn.addEventListener("click", () => {
+
+                this.dispatchEvent(new CustomEvent("task-action", {
+                    bubbles: true,
+                    composed: true,
+                    detail: { task: taskName, item: this }
+                }));
+
+            });
+        }
+
+        /* CHECKBOX — validación */
         this.#checkbox.addEventListener('change', () => {
+
+            // Bloqueo antes de cumplir acción
+            if (!this.actionCompleted) {
+                this.#checkbox.checked = false;
+                alert("Debes ejecutar la acción primero.");
+                return;
+            }
+
             const isChecked = this.#checkbox.checked;
             this._reflectAttribute(isChecked);
 
-            // (E) ¡La interacción! Disparamos un evento que el padre (TaskList) escuchará.
             this.dispatchEvent(new CustomEvent('task-toggled', {
                 bubbles: true,
                 composed: true,
-                detail: { checked: isChecked }
+                detail: {
+                    checked: isChecked,
+                    taskName: taskName,
+                    item: this
+                }
             }));
         });
     }
 
-    // (F) Buena práctica: reflejar el estado en el DOM.
+    /* MOSTRAR VIDEO LOCAL */
+    showLocalVideo(stream) {
+        this.localVideo.style.display = "block";
+        this.localVideo.srcObject = stream;
+
+        this.actionCompleted = true;
+        this.setAttribute("checked", "");
+    }
+
+    /* MOSTRAR IMAGEN LOCAL */
+    showLocalImage(url) {
+        this.localImage.style.display = "block";
+        this.localImage.src = url;
+
+        this.actionCompleted = true;
+        this.setAttribute("checked", "");
+    }
+
     _reflectAttribute(isChecked) {
-        if (isChecked) {
-            this.setAttribute('checked', '');
-        } else {
-            this.removeAttribute('checked');
+        if (isChecked) this.setAttribute('checked', '');
+        else this.removeAttribute('checked');
+    }
+
+    get isChecked() {
+        return this.hasAttribute('checked');
+    }
+}
+
+customElements.define('task-item', TaskItem);
+
+
+/* ==========================================================
+   ADMINISTRADOR DE TAREAS
+   ========================================================== */
+
+export class TaskManager {
+
+    constructor(progressSelector) {
+        this.progressBar = document.querySelector(progressSelector);
+
+        this.loadState();
+        this.setupListeners();
+        this.updateProgress();
+    }
+
+    /* Inicialización — siempre desde 0 */
+    loadState() {
+        document.querySelectorAll('task-item').forEach(item => {
+            item.removeAttribute("checked");
+            item.actionCompleted = false;
+        });
+    }
+
+    setupListeners() {
+
+        /* Ejecutar acciones */
+        document.addEventListener("task-action", async (e) => {
+
+            const task = e.detail.task;
+            const item = e.detail.item;
+
+            this.executeTask(task, item);
+
+        });
+
+        /* Checkbox */
+        document.addEventListener("task-toggled", (e) => {
+            const { checked, taskName } = e.detail;
+            localStorage.setItem(taskName, checked ? "true" : "false");
+            this.updateProgress();
+        });
+    }
+
+    /* FUNCIÓN COMPLETA DE ACCIONES */
+    executeTask(taskName, item) {
+
+        switch (taskName) {
+
+            case "tarea1":
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        item.showLocalVideo(stream);
+
+                        item.actionCompleted = true;
+                        item.setAttribute("checked", "");
+
+                        this.updateProgress();
+                    })
+                    .catch(() => alert("No se pudo acceder a la cámara"));
+                break;
+
+            case "tarea2":
+                item.showLocalImage("https://picsum.photos/300");
+
+                item.actionCompleted = true;
+                item.setAttribute("checked", "");
+                this.updateProgress();
+                break;
+
+            case "tarea3":
+                document.body.style.backgroundColor = "#0e35d0ff";
+
+                item.actionCompleted = true;
+                item.setAttribute("checked", "");
+                this.updateProgress();
+                break;
+
+            case "tarea4":
+                new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg").play();
+
+                item.actionCompleted = true;
+                item.setAttribute("checked", "");
+                this.updateProgress();
+                break;
         }
     }
 
-    // (G) Propiedad pública para que el padre sepa si está marcado.
-    get isChecked() {
-        return this.hasAttribute('checked');
+    /* Barra de progreso */
+    updateProgress() {
+        const items = document.querySelectorAll("task-item");
+        let done = 0;
+
+        items.forEach(i => {
+            if (i.isChecked) done++;
+        });
+
+        const percent = (done / items.length) * 100;
+        this.progressBar.style.width = percent + "%";
+        this.progressBar.textContent = Math.round(percent) + "%";
     }
 }
