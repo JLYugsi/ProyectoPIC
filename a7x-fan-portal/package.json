@@ -1,0 +1,19 @@
+{
+  "name": "a7x-fan-portal",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@vaadin/router": "^2.0.1",
+    "bootstrap": "^5.3.8",
+    "lit": "^3.3.1"
+  },
+  "devDependencies": {
+    "vite": "^7.2.4"
+  }
+}
