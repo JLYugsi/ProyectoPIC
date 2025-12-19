@@ -104,10 +104,10 @@ export class LoginView extends LitElement {
         e.preventDefault();
 
         if (this.isRegistering) {
-            if (this.username.includes(' ')) return alert("El nombre de usuario no puede tener espacios.");
-            if (this.password.length > 16) return alert("La contraseña no puede superar los 16 caracteres.");
+            if (this.username.includes(' '));
+            if (this.password.length > 16);
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(this.email)) return alert("El formato del correo es inválido.");
+            if (!emailRegex.test(this.email));
             
             await this._register();
         } else {
