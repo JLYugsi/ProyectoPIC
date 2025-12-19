@@ -10,7 +10,7 @@ export class LoginView extends LitElement {
             .login-bg {
                 min-height: 85vh;
                 display: flex; align-items: center; justify-content: center;
-                background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)), url('https://upload.wikimedia.org/wikipedia/commons/b/b3/Avenged_Sevenfold_2011.jpg');
+                background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)), url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR8ZpH0h3qYyGc9JoaEdqHe-VP9TudpUUgfcQ&s');
                 background-size: cover; background-position: center;
             }
             .card { background: rgba(20, 20, 20, 0.95); border: 1px solid #dc3545; color: white; width: 100%; max-width: 400px; }
