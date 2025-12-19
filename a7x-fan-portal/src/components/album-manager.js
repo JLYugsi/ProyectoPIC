@@ -1,6 +1,8 @@
 import { LitElement, html, css, unsafeCSS } from 'lit';
 import { map } from 'lit/directives/map.js';
 import { auth } from '../services/auth-service.js';
+import { Router } from '@vaadin/router'; // Necesario para redirección
+import { Modal } from 'bootstrap';
 import bootstrapStyles from 'bootstrap/dist/css/bootstrap.min.css?inline';
 import './album-card.js';
 
@@ -9,10 +11,10 @@ const API_URL = 'http://localhost:3000/api/albums';
 export class AlbumManager extends LitElement {
   static properties = {
     albums: { type: Array },
-    // Filtros
-    sortCriteria: { type: String }, // 'year' | 'title'
-    sortDirection: { type: String }, // 'asc' | 'desc'
-
+    sortCriteria: { type: String },
+    sortDirection: { type: String },
+    
+    // Edición
     editingId: { type: String },
     editingTitle: { type: String },
     inputTitle: { type: String },
@@ -21,60 +23,68 @@ export class AlbumManager extends LitElement {
     inputSongs: { type: String },
     inputDesc: { type: String },
     inputSpotify: { type: String },
-    inputAudio: { type: String }
+    inputAudio: { type: String },
+
+    // Eliminación
+    albumToDeleteId: { type: String }
   };
 
   static styles = [
     unsafeCSS(bootstrapStyles),
     css`
-      /* Estilos Formulario Admin */
+      /* Estilos Formulario */
       .card-form { background-color: #222 !important; border: 1px solid #444; box-shadow: 0 4px 15px rgba(0,0,0,0.8); border-radius: 8px; overflow: hidden; }
       .card-header { background-color: #111 !important; border-bottom: 2px solid #dc3545 !important; color: #fff !important; padding: 1.5rem; font-family: 'Metal Mania', cursive; text-align: center; font-size: 1.5rem; }
       .form-control { background-color: #333 !important; border: 1px solid #555 !important; color: #fff !important; }
       .form-control:focus { background-color: #444 !important; border-color: #dc3545 !important; box-shadow: 0 0 8px rgba(220, 53, 69, 0.6) !important; color: #fff !important; }
       label { color: #dc3545 !important; font-weight: bold; text-transform: uppercase; font-size: 0.85rem; }
-      ::placeholder { color: #aaa !important; opacity: 1; }
 
-      /* BARRA DE FILTROS */
-      .filter-bar {
-        background-color: #111;
-        border-bottom: 1px solid #333;
-        padding: 1rem;
-        margin-bottom: 2rem;
-        border-radius: 8px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        color: white;
-      }
-      .filter-select {
-        background-color: #222;
-        color: white;
-        border: 1px solid #444;
-        padding: 5px 10px;
-        border-radius: 4px;
-      }
-      .btn-sort {
-        background: transparent;
-        border: 1px solid #444;
-        color: #dc3545;
-        padding: 5px 15px;
-        border-radius: 4px;
-        transition: 0.3s;
-      }
+      /* Barra filtros */
+      .filter-bar { background-color: #111; border-bottom: 1px solid #333; padding: 1rem; margin-bottom: 2rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; color: white; }
+      .filter-select { background-color: #222; color: white; border: 1px solid #444; padding: 5px 10px; border-radius: 4px; }
+      .btn-sort { background: transparent; border: 1px solid #444; color: #dc3545; padding: 5px 15px; border-radius: 4px; transition: 0.3s; }
       .btn-sort:hover { background: #dc3545; color: white; }
+
+      /* --- ESTILOS MODAL DARK --- */
+      .modal-content { 
+        background-color: #222; 
+        color: #fff; 
+        border: 1px solid #444; 
+        box-shadow: 0 0 20px rgba(0,0,0,0.8); /* Sombra para resaltar */
+      }
+      .modal-header { border-bottom: 1px solid #333; }
+      .modal-footer { border-top: 1px solid #333; }
+      .modal-title { font-family: 'Metal Mania'; font-size: 1.5rem; }
+      
+      /* Variantes de Modal para mejor contraste */
+      .modal-danger .modal-content { border: 1px solid #dc3545; }
+      .modal-danger .modal-title { color: #dc3545; }
+      
+      .modal-warning .modal-content { border: 1px solid #ffc107; }
+      .modal-warning .modal-title { color: #ffc107; }
     `
   ];
 
   constructor() {
     super();
     this.albums = [];
-    this.sortCriteria = 'year'; // Default: Año
-    this.sortDirection = 'asc'; // Default: Ascendente
-    
+    this.sortCriteria = 'year';
+    this.sortDirection = 'asc';
+    this.deleteModal = null;
+    this.loginModal = null;
     this._resetForm();
     this._fetchAlbums();
     window.addEventListener('auth-changed', () => this.requestUpdate());
+  }
+
+  firstUpdated() {
+    // Inicializar Modal de Borrado
+    const delEl = this.shadowRoot.getElementById('deleteAlbumModal');
+    if (delEl) this.deleteModal = new Modal(delEl);
+
+    // Inicializar Modal de Login
+    const loginEl = this.shadowRoot.getElementById('loginRequiredModal');
+    if (loginEl) this.loginModal = new Modal(loginEl);
   }
 
   async _fetchAlbums() {
@@ -85,22 +95,11 @@ export class AlbumManager extends LitElement {
     } catch (e) { console.error(e); }
   }
 
-  // Lógica de ordenamiento
   get sortedAlbums() {
-    // Creamos una copia para no mutar el array original
     const list = [...this.albums];
-
     return list.sort((a, b) => {
-      let valA, valB;
-
-      if (this.sortCriteria === 'year') {
-        valA = a.year;
-        valB = b.year;
-      } else {
-        valA = a.title.toLowerCase();
-        valB = b.title.toLowerCase();
-      }
-
+      let valA = this.sortCriteria === 'year' ? a.year : a.title.toLowerCase();
+      let valB = this.sortCriteria === 'year' ? b.year : b.title.toLowerCase();
       if (valA < valB) return this.sortDirection === 'asc' ? -1 : 1;
       if (valA > valB) return this.sortDirection === 'asc' ? 1 : -1;
       return 0;
@@ -111,7 +110,15 @@ export class AlbumManager extends LitElement {
     this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
   }
 
-  // ... (Tus funciones _handleSpotifyInput, _handleSubmit, etc. se mantienen igual) ...
+  // Lógica de "Portero": Si no está logueado, muestra modal amarillo
+  _handleViewRequest(e) {
+    if (auth.isLoggedIn()) {
+        Router.go(`/albums/${e.detail.id}`);
+    } else {
+        this.loginModal.show();
+    }
+  }
+
   _handleSpotifyInput(e) {
     const textoPegado = e.target.value;
     const regex = /src="([^"]+)"/;
@@ -134,7 +141,6 @@ export class AlbumManager extends LitElement {
               <option value="title">🅰️ Alfabético (A-Z)</option>
             </select>
           </div>
-          
           <button class="btn-sort" @click="${this._toggleDirection}">
             ${this.sortDirection === 'asc' ? '⬆ ASCENDENTE' : '⬇ DESCENDENTE'}
           </button>
@@ -207,17 +213,54 @@ export class AlbumManager extends LitElement {
                 .songs="${album.songs}"
                 .spotifyUrl="${album.spotifyUrl}"
                 .audioPreview="${album.audioPreview}"
-                @delete-album="${this._handleDelete}"
+                @view-album="${this._handleViewRequest}" 
+                @delete-album="${this._handleDeleteRequest}" 
                 @edit-album="${this._handleEditRequest}"
               ></album-card>
             </div>
           `)}
         </div>
+
+        <div class="modal fade modal-danger" id="deleteAlbumModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">⚠️ Borrar Álbum</h5>
+                        <button type="button" class="btn-close btn-close-white" @click="${() => this.deleteModal.hide()}"></button>
+                    </div>
+                    <div class="modal-body">
+                        ¿Confirmas que deseas eliminar este álbum de la existencia?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @click="${() => this.deleteModal.hide()}">Cancelar</button>
+                        <button type="button" class="btn btn-danger fw-bold" @click="${this._confirmDelete}">ELIMINAR</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade modal-warning" id="loginRequiredModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">🔒 Acceso Restringido</h5>
+                        <button type="button" class="btn-close btn-close-white" @click="${() => this.loginModal.hide()}"></button>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <p class="fs-5">Solo los miembros de la <strong>Deathbat Nation</strong> pueden acceder.</p>
+                        <p class="text-secondary small">Inicia sesión para ver canciones y escuchar música.</p>
+                        <button class="btn btn-warning fw-bold mt-3 px-4" @click="${() => { this.loginModal.hide(); Router.go('/login'); }}">
+                            INICIAR SESIÓN
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
       </div>
     `;
   }
 
-  // --- MÉTODOS DE ACCIÓN (Sin cambios en lógica) ---
   async _handleSubmit(e) {
     e.preventDefault();
     const body = JSON.stringify({
@@ -230,13 +273,24 @@ export class AlbumManager extends LitElement {
         if (this.editingId) await fetch(`${API_URL}/${this.editingId}`, { method: 'PUT', headers, body });
         else await fetch(API_URL, { method: 'POST', headers, body });
         this._fetchAlbums(); this._resetForm();
-    } catch (e) { alert('Error al guardar'); }
+    } catch (e) { console.error('Error al guardar', e); }
   }
 
-  async _handleDelete(e) {
-    if (confirm("¿Eliminar este álbum?")) {
-        try { await fetch(`${API_URL}/${e.detail.id}`, { method: 'DELETE' }); this._fetchAlbums(); } 
-        catch (e) { alert('Error al eliminar'); }
+  // Abre el modal de borrar
+  _handleDeleteRequest(e) {
+    this.albumToDeleteId = e.detail.id;
+    this.deleteModal.show();
+  }
+
+  // Ejecuta el borrado
+  async _confirmDelete() {
+    this.deleteModal.hide();
+    if (this.albumToDeleteId) {
+        try { 
+            await fetch(`${API_URL}/${this.albumToDeleteId}`, { method: 'DELETE' }); 
+            this._fetchAlbums(); 
+        } 
+        catch (e) { console.error('Error al eliminar', e); }
     }
   }
 
