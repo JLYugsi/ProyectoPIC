@@ -140,7 +140,6 @@ export class LoginView extends LitElement {
                 body: JSON.stringify({ nombre: this.username, correo: this.email, password: this.password })
             });
             if (res.ok) {
-                alert('¡Registro exitoso! Ahora inicia sesión.');
                 this._toggleMode(); // Cambiamos a modo login automáticamente y limpia campos
             } else {
                 const data = await res.json();
