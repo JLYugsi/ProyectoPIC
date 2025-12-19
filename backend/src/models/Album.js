@@ -5,9 +5,7 @@ const albumSchema = new mongoose.Schema({
     year: { type: Number, required: true },
     cover: { type: String, required: true },
     desc: { type: String },
-    songs: { type: String }, // Lista separada por comas para favoritos
-    
-    // NUEVOS CAMPOS
+    songs: { type: String },
     spotifyUrl: { type: String }, // URL para el iframe (ej: https://open.spotify.com/embed/album/...)
     audioPreview: { type: String } // URL del MP3 del hit (ej: /public/audio/nightmare_preview.mp3)
 }, {

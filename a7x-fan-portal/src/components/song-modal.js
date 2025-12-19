@@ -1,4 +1,5 @@
 import { LitElement, html, css, unsafeCSS } from 'lit';
+import { Modal } from 'bootstrap'; // <--- IMPORTACIÓN DIRECTA CLAVE
 import bootstrapStyles from 'bootstrap/dist/css/bootstrap.min.css?inline';
 
 export class SongModal extends LitElement {
@@ -11,6 +12,10 @@ export class SongModal extends LitElement {
   static styles = [
     unsafeCSS(bootstrapStyles),
     css`
+      /* Aseguramos que el modal tenga z-index alto para verse sobre todo */
+      .modal { z-index: 1055 !important; }
+      .modal-backdrop { z-index: 1050 !important; }
+      
       .modal-content { background-color: #212529; color: #fff; border: 1px solid #dc3545; }
       .modal-header { border-bottom: 1px solid #444; }
       .track-list { max-height: 250px; overflow-y: auto; margin-top: 1rem;}
@@ -34,16 +39,23 @@ export class SongModal extends LitElement {
 
   firstUpdated() {
     const modalEl = this.shadowRoot.getElementById('songsModal');
-    this.modalInstance = new window.bootstrap.Modal(modalEl);
+    // Usamos la clase Modal importada directamente
+    this.modalInstance = new Modal(modalEl);
   }
 
-  // Método público que llama el Manager
   openModal(albumTitle, songsString, spotifyUrl) {
+    console.log("Intentando abrir modal para:", albumTitle); // Debug
     this.title = albumTitle;
+    // Convertimos la cadena de canciones en Array
     this.songs = songsString ? songsString.split(',').map(s => s.trim()) : [];
     this.spotifyUrl = spotifyUrl; 
+    
     this.requestUpdate();
-    this.modalInstance.show();
+    
+    // Pequeño timeout para asegurar que Lit actualizó el DOM antes de mostrar
+    setTimeout(() => {
+        if(this.modalInstance) this.modalInstance.show();
+    }, 0);
   }
 
   render() {
@@ -68,10 +80,10 @@ export class SongModal extends LitElement {
                           loading="lazy">
                   </iframe>
                 </div>
-              ` : html`<div class="alert alert-dark text-center">No hay reproductor de Spotify disponible para este álbum.</div>`}
+              ` : html`<div class="alert alert-dark text-center small">No hay preview de Spotify para este álbum.</div>`}
 
               <h6 class="text-danger fw-bold border-bottom border-secondary pb-2 mt-4">
-                VOTA TUS FAVORITAS 🤘
+                TRACKLIST & FAVORITOS
               </h6>
               <div class="track-list">
                 ${this.songs.length === 0 
@@ -97,10 +109,7 @@ export class SongModal extends LitElement {
   _toggleFav(e, songName) {
     const btn = e.target;
     btn.classList.toggle('active');
-    
-    // Feedback visual simple
     if(btn.classList.contains('active')) {
-        // Aquí podrías agregar lógica para guardar en DB
         alert(`¡"${songName}" agregada a tus favoritos!`);
     }
   }

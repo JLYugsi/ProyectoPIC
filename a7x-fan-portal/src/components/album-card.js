@@ -1,4 +1,5 @@
 import { LitElement, html, css, unsafeCSS } from 'lit';
+import { Router } from '@vaadin/router';
 import { auth } from '../services/auth-service.js';
 import bootstrapStyles from 'bootstrap/dist/css/bootstrap.min.css?inline';
 
@@ -21,22 +22,15 @@ export class AlbumCard extends LitElement {
       .card { 
         background: #1a1a1a; 
         border: 1px solid #333; 
-        transition: transform 0.3s, border-color 0.3s; 
         height: 100%; 
         color: white; 
-        cursor: pointer; /* Mano al pasar el mouse */
+        cursor: pointer; 
+        transition: 0.3s;
       }
-      .card:hover { 
-        transform: translateY(-10px) scale(1.02); 
-        border-color: #dc3545; 
-        box-shadow: 0 0 20px rgba(220, 53, 69, 0.4);
-      }
-      img { width: 100%; aspect-ratio: 1/1; object-fit: contain; background-color: black; border-bottom: 2px solid #dc3545; }
-      .card-title { font-family: 'Metal Mania', cursive; font-size: 1.5rem; color: #fff; }
-      .card-body { display: flex; flex-direction: column; padding: 1rem; }
-      
-      /* Botones de acción (Admin) */
-      .admin-actions { z-index: 10; position: relative; }
+      .card:hover { transform: translateY(-5px); border-color: #dc3545; box-shadow: 0 0 15px rgba(220,53,69,0.3); }
+      img { width: 100%; aspect-ratio: 1/1; object-fit: contain; background: black; border-bottom: 2px solid #dc3545; }
+      .card-body { padding: 1rem; }
+      .card-title { font-family: 'Metal Mania'; font-size: 1.4rem; color: #fff; }
     `
   ];
 
@@ -45,33 +39,28 @@ export class AlbumCard extends LitElement {
     this.audio = null;
   }
 
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    this._stopAudio();
-  }
+  disconnectedCallback() { super.disconnectedCallback(); this._stopAudio(); }
 
   render() {
     const isAdmin = auth.isAdmin();
-    
     return html`
       <div class="card" 
            @mouseenter="${this._playAudio}" 
            @mouseleave="${this._stopAudio}"
            @click="${this._handleViewSongs}"> <img src="${this.cover}" class="card-img-top" alt="${this.title}">
-        
         <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <h3 class="card-title mb-0">${this.title}</h3>
-            <span class="badge bg-danger">${this.year}</span>
+          <div class="d-flex justify-content-between align-items-center">
+             <h3 class="card-title m-0">${this.title}</h3>
+             <span class="badge bg-danger">${this.year}</span>
           </div>
-          <p class="card-text text-secondary flex-grow-1">${this.desc}</p>
+          <p class="text-secondary small mt-2 mb-0">${this.desc}</p>
           
-          ${this.audioPreview ? html`<small class="text-danger"><i class="fas fa-volume-up"></i></small>` : ''}
+          ${this.audioPreview ? html`<small class="text-danger d-block mt-2"><i class="fas fa-volume-up"></i> Hit Preview</small>` : ''}
 
           ${isAdmin ? html`
-            <div class="d-flex justify-content-between border-top border-secondary pt-3 mt-3 admin-actions" 
-                 @click="${(e) => e.stopPropagation()}"> <button class="btn btn-outline-warning btn-sm w-45" @click="${this._handleEdit}">✏️ Editar</button>
-              <button class="btn btn-outline-danger btn-sm w-45" @click="${this._handleDelete}">🗑️ Borrar</button>
+            <div class="mt-3 pt-2 border-top border-secondary d-flex justify-content-between" @click="${e => e.stopPropagation()}">
+              <button class="btn btn-sm btn-outline-warning" @click="${this._handleEdit}">✏️</button>
+              <button class="btn btn-sm btn-outline-danger" @click="${this._handleDelete}">🗑️</button>
             </div>
           ` : ''}
         </div>
@@ -82,42 +71,21 @@ export class AlbumCard extends LitElement {
   _playAudio() {
     if (this.audioPreview) {
       if (!this.audio) this.audio = new Audio(this.audioPreview);
-      this.audio.volume = 0.5; 
-      this.audio.play().catch(e => console.log("Autoplay bloqueado:", e));
+      this.audio.volume = 0.4;
+      this.audio.play().catch(() => {});
     }
   }
 
   _stopAudio() {
-    if (this.audio) {
-      this.audio.pause();
-      this.audio.currentTime = 0; 
-    }
+    if (this.audio) { this.audio.pause(); this.audio.currentTime = 0; }
   }
 
   _handleViewSongs() {
-    // Si no está logueado, redirigir o mostrar alerta (opcional, según tu gusto)
-    if (!auth.isLoggedIn()) {
-        window.location.href = '/login';
-        return;
-    }
+    // Si no está logueado, redirigir
+    if (!auth.isLoggedIn()) return Router.go('/login');
 
-    this.dispatchEvent(new CustomEvent('view-songs', {
-      detail: { 
-        title: this.title, 
-        songs: this.songs,
-        spotifyUrl: this.spotifyUrl 
-      },
-      bubbles: true, composed: true
-    }));
-  }
-
-  _handleDelete() {
-    if(confirm(`¿Eliminar álbum "${this.title}"?`)) {
-        this.dispatchEvent(new CustomEvent('delete-album', {
-            detail: { id: this.id },
-            bubbles: true, composed: true
-        }));
-    }
+    // NAVEGACIÓN: Usamos el Router para ir a la nueva página de detalle
+    Router.go(`/albums/${this.id}`);
   }
 
   _handleEdit() {
@@ -125,11 +93,15 @@ export class AlbumCard extends LitElement {
       detail: { 
         title: this.title, year: this.year, cover: this.cover, 
         desc: this.desc, songs: this.songs,
-        spotifyUrl: this.spotifyUrl,     // Enviamos datos nuevos
-        audioPreview: this.audioPreview  // Enviamos datos nuevos
+        spotifyUrl: this.spotifyUrl,
+        audioPreview: this.audioPreview
       },
       bubbles: true, composed: true
     }));
+  }
+  
+  _handleDelete() {
+    if(confirm("¿Borrar álbum?")) this.dispatchEvent(new CustomEvent('delete-album', { detail: { id: this.id }, bubbles: true, composed: true }));
   }
 }
 customElements.define('album-card', AlbumCard);

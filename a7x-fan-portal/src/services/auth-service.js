@@ -1,41 +1,54 @@
-class AuthService {
-    constructor() {
-        // Leemos si hay un usuario guardado al iniciar la página
-        this.user = JSON.parse(sessionStorage.getItem('a7x_user')) || null;
-    }
+export class AuthService {
+  constructor() {
+    this.check();
+  }
 
-    // Retorna true si hay alguien logueado
-    isLoggedIn() {
-        return !!this.user;
-    }
+  // Verificar si hay sesión guardada
+  check() {
+    this.user = JSON.parse(sessionStorage.getItem('user')) || null;
+  }
 
-    // Retorna true solo si el rol es 'admin'
-    isAdmin() {
-        return this.user && this.user.rol === 'admin';
-    }
+  // Guardar usuario al hacer login
+  login(user) {
+    this.user = user;
+    sessionStorage.setItem('user', JSON.stringify(user));
+    this._notify();
+  }
 
-    // Devuelve los datos del usuario actual
-    getUser() {
-        return this.user;
-    }
+  // Borrar sesión
+  logout() {
+    this.user = null;
+    sessionStorage.removeItem('user');
+    window.location.href = '/login'; // Forzamos recarga y viaje al login
+  }
 
-    // Guarda el usuario en SessionStorage (se borra al cerrar el navegador)
-    login(userData) {
-        this.user = userData;
-        sessionStorage.setItem('a7x_user', JSON.stringify(userData));
-        // Avisamos a toda la app que alguien entró
-        window.dispatchEvent(new CustomEvent('auth-changed'));
-    }
+  // Obtener datos del usuario
+  getUser() {
+    this.check(); // Aseguramos tener el dato fresco
+    return this.user;
+  }
 
-    // Borra los datos
-    logout() {
-        this.user = null;
-        sessionStorage.removeItem('a7x_user');
-        // Avisamos a toda la app que alguien salió
-        window.dispatchEvent(new CustomEvent('auth-changed'));
-        window.location.href = '/'; // Redirigir al inicio
-    }
+  // ¿Está logueado?
+  isLoggedIn() {
+    this.check();
+    return !!this.user;
+  }
+
+  // --- LA SOLUCIÓN CLAVE ---
+  isAdmin() {
+    this.check();
+    if (!this.user) return false;
+
+    // Verificamos AMBOS casos (rol en español o role en inglés)
+    const role = this.user.role || this.user.rol;
+    
+    // Convertimos a minúsculas y quitamos espacios por si acaso
+    return role && role.trim().toLowerCase() === 'admin';
+  }
+
+  _notify() {
+    window.dispatchEvent(new CustomEvent('auth-changed'));
+  }
 }
 
-// Exportamos una única instancia (Singleton) para usarla en todos lados
 export const auth = new AuthService();

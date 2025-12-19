@@ -10,7 +10,7 @@ export class LoginView extends LitElement {
             .login-bg {
                 min-height: 85vh;
                 display: flex; align-items: center; justify-content: center;
-                background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)), url('https://images5.alphacoders.com/690/690563.jpg');
+                background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)), url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR3bISOcKqnywHPJ768LjtJD9-6v3XVuwfLyg&s');
                 background-size: cover; background-position: center;
             }
             .card { background: rgba(20, 20, 20, 0.95); border: 1px solid #dc3545; color: white; width: 100%; max-width: 400px; }
@@ -50,7 +50,7 @@ export class LoginView extends LitElement {
                         
                         ${this.isRegistering ? html`
                             <div class="mb-3">
-                                <label class="form-label">Nombre de Usuario (Sin espacios)</label>
+                                <label class="form-label">Nombre de Usuario</label>
                                 <input type="text" class="form-control" .value="${this.username}" 
                                     @input="${e => this.username = e.target.value.replace(/\s/g, '')}" required>
                             </div>
